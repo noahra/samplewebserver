@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
 	"strings"
 )
 
@@ -33,8 +34,23 @@ func handleConnection(conn net.Conn) {
 	}
 
 	bufStr := strings.Fields(string(buf))
-	println(bufStr[0], bufStr[1], bufStr[2])
-	responseStr := bufStr[2] + " 200 OK\r\n\r\n" + "Requested path: " + bufStr[1] + "\r\n"
+	if bufStr[1] == "/" || bufStr[1] == "/index.html" {
+		err = serveRoot(bufStr, conn)
+		if err != nil {
+			fmt.Println(err)
+		}
+	} else {
+		responseStr := bufStr[2] + " 404 Not Found\r\n\r\n"
+		conn.Write([]byte(responseStr))
+	}
+}
 
-	conn.Write([]byte(responseStr))
+func serveRoot(bufStr []string, conn net.Conn) error {
+	htmlFile, err := os.ReadFile("www/index.html")
+	if err != nil {
+		return err
+	}
+	responseStr := bufStr[2] + " 200 OK\r\n\r\n"
+	conn.Write(append([]byte(responseStr), htmlFile...))
+	return nil
 }
